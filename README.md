@@ -1,4 +1,4 @@
-# Full-fledged DevOps Project
+# Terraform AWS WebApp Stack
 
 A comprehensive AWS infrastructure project using Terraform to deploy a scalable web application with load balancing, auto-scaling, and monitoring capabilities.
 
@@ -36,13 +36,14 @@ This project creates:
 ### 1. Clone and Setup
 
 ```bash
-git clone 
-cd Full-fledged-DevOps-Project/terraform
+git clone https://github.com/rufilboss/terraform-aws-webapp-stack.git
+cd terraform-aws-webapp-stack/terraform
 ```
 
 ### 2. Configure Variables
 
 Create a `terraform.tfvars` file:
+
 ```hcl
 # Required variables
 domain_name = "example.com"
@@ -56,6 +57,7 @@ instance_type = "t3.medium"
 ```
 
 ### 3. Initialize and Deploy
+
 ```bash
 # Initialize Terraform
 terraform init
@@ -68,32 +70,37 @@ terraform apply
 ```
 
 ### 4. Access Your Application
+
 After deployment, your application will be available at:
+
 - `https://your-domain.com`
 - `https://www.your-domain.com`
 
 ## Configuration Options
 
 ### Network Configuration
+
 - `vpc_cidr`: VPC CIDR block (default: 10.0.0.0/16)
 - `availability_zones`: List of AZs to use
 - `public_subnet_cidrs`: Public subnet CIDR blocks
 - `private_subnet_cidrs`: Private subnet CIDR blocks
 
 ### Compute Configuration
+
 - `instance_type`: EC2 instance type (default: t3.medium)
 - `min_size`: Minimum instances in ASG (default: 2)
 - `max_size`: Maximum instances in ASG (default: 6)
 - `desired_capacity`: Desired instances in ASG (default: 3)
 
 ### Security Configuration
+
 - `allowed_cidr_blocks`: CIDR blocks allowed access
 - `enable_waf`: Enable AWS WAF (requires WAF module)
 - `enable_ssl_redirect`: Force HTTPS redirects
 
 ## Project Structure
 
-```
+```sh
 terraform/
 ├── main.tf              # Main configuration
 ├── variables.tf         # Variable definitions
@@ -110,6 +117,7 @@ terraform/
 ## Important Notes
 
 ⚠️ **Current Limitations:**
+
 - Missing modules: `monitoring`, `waf`, `backup` (referenced in main.tf but not implemented)
 - Some module implementations are incomplete
 - Backend state configuration is commented out
@@ -117,6 +125,7 @@ terraform/
 ## Cleanup
 
 To destroy all resources:
+
 ```bash
 terraform destroy
 ```
@@ -124,6 +133,7 @@ terraform destroy
 ## Troubleshooting
 
 ### Common Issues
+
 1. **Domain validation**: Ensure your domain is registered and Route53 zone exists
 2. **AWS credentials**: Verify AWS CLI is configured correctly
 3. **Resource limits**: Check AWS service limits in your region
