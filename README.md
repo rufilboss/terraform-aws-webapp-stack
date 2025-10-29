@@ -118,9 +118,10 @@ terraform/
 
 ⚠️ **Current Limitations:**
 
-- Missing modules: `monitoring`, `waf`, `backup` (referenced in main.tf but not implemented)
-- Some module implementations are incomplete
-- Backend state configuration is commented out
+- Backend state configuration is commented out (recommended to enable for production)
+- Some modules may need additional configuration based on specific requirements
+- WAF module is optional and only enabled when `enable_waf = true`
+- Monitoring module only activates when `notification_email` is provided
 
 ## Cleanup
 
