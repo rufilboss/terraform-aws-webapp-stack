@@ -12,6 +12,7 @@ resource "aws_route53_record" "main" {
 }
 
 # WWW subdomain redirect
+
 resource "aws_route53_record" "www" {
   count   = var.create_www_record ? 1 : 0
   zone_id = var.zone_id
