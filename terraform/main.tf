@@ -3,6 +3,22 @@ resource "random_id" "suffix" {
   byte_length = 4
 }
 
+# Data source for Ubuntu AMI
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
 # Local values for consistent naming and tagging
 locals {
   name_prefix = "${var.project_name}-${var.environment}"
@@ -19,73 +35,43 @@ locals {
 module "vpc" {
   source = "./modules/vpc"
 
-  name_prefix          = local.name_prefix
-  vpc_cidr             = var.vpc_cidr
-  availability_zones   = var.availability_zones
-  public_subnet_cidrs  = var.public_subnet_cidrs
-  private_subnet_cidrs = var.private_subnet_cidrs
-  enable_nat_gateway   = true
-  enable_vpn_gateway   = false
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-
-  tags = local.common_tags
+  vpc_cidr           = var.vpc_cidr
+  aws_region         = var.aws_region
+  public_subnet_cidr = var.public_subnet_cidrs[0]
 }
 
 # Security Groups Module
 module "security_groups" {
   source = "./modules/sg"
-
-  name_prefix         = local.name_prefix
-  vpc_id              = module.vpc.vpc_id
-  allowed_cidr_blocks = var.allowed_cidr_blocks
-
-  tags = local.common_tags
 }
 
 # ACM Certificate Module
 module "acm" {
   source = "./modules/acm"
 
-  domain_name = var.domain_name
-  zone_id     = var.route53_zone_id
-
-  tags = local.common_tags
+  domain  = var.domain_name
+  zone_id = var.route53_zone_id
 }
 
 # Application Load Balancer Module
 module "alb" {
   source = "./modules/alb"
 
-  name_prefix         = local.name_prefix
-  vpc_id              = module.vpc.vpc_id
-  public_subnet_ids   = module.vpc.public_subnet_ids
-  security_group_ids  = [module.security_groups.alb_security_group_id]
-  certificate_arn     = module.acm.certificate_arn
-  enable_access_logs  = var.enable_access_logs
-  enable_ssl_redirect = var.enable_ssl_redirect
-
-  tags = local.common_tags
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.public_subnet_ids
+  acm_arn    = module.acm.certificate_arn
 }
 
 # Launch Template and Auto Scaling Group
 module "compute" {
   source = "./modules/ec2"
 
-  name_prefix                = local.name_prefix
-  vpc_id                     = module.vpc.vpc_id
-  private_subnet_ids         = module.vpc.private_subnet_ids
-  security_group_ids         = [module.security_groups.ec2_security_group_id]
-  target_group_arn           = module.alb.target_group_arn
-  instance_type              = var.instance_type
-  ami_id                     = data.aws_ami.ubuntu.id
-  min_size                   = var.min_size
-  max_size                   = var.max_size
-  desired_capacity           = var.desired_capacity
-  enable_auto_scaling        = var.enable_auto_scaling
-  enable_detailed_monitoring = var.enable_detailed_monitoring
-
-  tags = local.common_tags
+  vpc_id        = module.vpc.vpc_id
+  alb_sg_id     = module.alb.security_group_id
+  ssh_cidr      = var.allowed_cidr_blocks[0]
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = var.instance_type
+  subnet_id     = module.vpc.public_subnet_ids[0]
 }
 
 # Route53 DNS Module
@@ -109,12 +95,13 @@ module "monitoring" {
   count  = var.notification_email != "" ? 1 : 0
   source = "./modules/monitoring"
 
-  name_prefix             = local.name_prefix
-  notification_email      = var.notification_email
-  alb_arn                 = module.alb.arn
-  target_group_arn        = module.alb.target_group_arn
-  auto_scaling_group_name = module.compute.auto_scaling_group_name
-  log_retention_days      = var.log_retention_days
+  project_name   = var.project_name
+  environment    = var.environment
+  alb_arn_suffix = module.alb.arn_suffix
+  asg_name       = module.compute.auto_scaling_group_name
+  aws_region     = var.aws_region
+  enable_alarms  = true
+  sns_topic_arn  = null
 
   tags = local.common_tags
 }
@@ -124,19 +111,21 @@ module "waf" {
   count  = var.enable_waf ? 1 : 0
   source = "./modules/waf"
 
-  name_prefix = local.name_prefix
-  alb_arn     = module.alb.arn
+  project_name = var.project_name
+  environment  = var.environment
+  alb_arn      = module.alb.arn
 
   tags = local.common_tags
 }
 
 # Backup and Disaster Recovery
 module "backup" {
+  count  = var.enable_backup ? 1 : 0
   source = "./modules/backup"
 
-  name_prefix                = local.name_prefix
-  backup_retention_days      = var.backup_retention_days
-  enable_cross_region_backup = var.enable_cross_region_backup
+  project_name = var.project_name
+  environment  = var.environment
+  kms_key_arn  = null
 
   tags = local.common_tags
 }

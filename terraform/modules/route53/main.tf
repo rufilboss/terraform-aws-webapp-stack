@@ -9,11 +9,6 @@ resource "aws_route53_record" "main" {
     zone_id                = var.alb_zone_id
     evaluate_target_health = true
   }
-
-  tags = merge(var.tags, {
-    Name = "${var.domain}-main-record"
-    Type = "Primary A Record"
-  })
 }
 
 # WWW subdomain redirect
@@ -28,11 +23,6 @@ resource "aws_route53_record" "www" {
     zone_id                = var.alb_zone_id
     evaluate_target_health = true
   }
-
-  tags = merge(var.tags, {
-    Name = "www.${var.domain}-record"
-    Type = "WWW A Record"
-  })
 }
 
 # Health check for the primary domain
@@ -44,9 +34,8 @@ resource "aws_route53_health_check" "main" {
   resource_path                  = var.health_check_path
   failure_threshold              = var.health_check_failure_threshold
   request_interval               = var.health_check_request_interval
-  cloudwatch_logs_region         = var.aws_region
   cloudwatch_alarm_region        = var.aws_region
-  insufficient_data_health_status = "Failure"
+  insufficient_data_health_status = "LastKnownStatus"
 
   tags = merge(var.tags, {
     Name = "${var.domain}-health-check"

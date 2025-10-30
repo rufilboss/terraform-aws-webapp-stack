@@ -189,3 +189,9 @@ variable "enable_access_logs" {
   type        = bool
   default     = true
 }
+
+variable "enable_backup" {
+  description = "Enable AWS Backup service"
+  type        = bool
+  default     = false
+}
